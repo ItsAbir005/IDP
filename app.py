@@ -1,6 +1,6 @@
 import joblib
 import numpy as np
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 
 # --- 1. Initialize Flask App ---
 app = Flask(__name__)
@@ -15,9 +15,19 @@ except FileNotFoundError as e:
     print(f"Error: {e}. Please ensure all .joblib files are in the same directory.")
     exit()
 
-# --- 3. Define the prediction endpoint ---
+# --- 3. Define the frontend route ---
+@app.route('/')
+def home():
+    """Serves the main HTML page for the frontend."""
+    return render_template('index.html')
+
+# --- 4. Define the prediction endpoint ---
 @app.route('/predict', methods=['POST'])
 def predict():
+    """
+    This endpoint accepts a POST request with new data,
+    makes a prediction, and returns the result as JSON.
+    """
     try:
         data = request.get_json(force=True)
         input_data = np.array(data['input_data'])
@@ -27,7 +37,6 @@ def predict():
         scaled_data = scaler.transform(input_data)
 
         # 2. Slice the data to match the model's expected 5 features
-        # The 'Data Accuracy (%)' feature is the last column (index 5), so we drop it.
         model_input = scaled_data[:, :-1]
 
         # 3. Make a prediction using the alert model (5 features)
@@ -43,6 +52,6 @@ def predict():
     except Exception as e:
         return jsonify({'error': str(e)}), 400
 
-# --- 4. Run the Flask application ---
+# --- 5. Run the Flask application ---
 if __name__ == '__main__':
     app.run(port=5000, debug=True)
