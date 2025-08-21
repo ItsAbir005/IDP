@@ -1,57 +1,94 @@
+from flask import Flask, request, jsonify
 import joblib
+import pandas as pd
 import numpy as np
-from flask import Flask, request, jsonify, render_template
 
-# --- 1. Initialize Flask App ---
 app = Flask(__name__)
 
-# --- 2. Load the serialized objects once on app startup ---
+MODEL_PATH = 'xgboost_uv_risk.joblib'
+SCALER_PATH = 'scaler_reduced.joblib'
+LABEL_ENCODER_UV_RISK_PATH = 'label_encoder.joblib'
+MULTI_OUTPUT_MODEL_PATH = 'multioutput_model.joblib'
+MULTI_LABEL_ENCODERS_PATH = 'label_encoder_1.joblib'
+
 try:
-    scaler = joblib.load('scaler.joblib')
-    label_encoder = joblib.load('label_encoder.joblib')
-    alert_model = joblib.load('alert_model.joblib')
-    print("All models and processors loaded successfully.")
-except FileNotFoundError as e:
-    print(f"Error: {e}. Please ensure all .joblib files are in the same directory.")
-    exit()
+    uv_risk_model = joblib.load(MODEL_PATH)
+    shared_scaler = joblib.load(SCALER_PATH)
+    uv_risk_le = joblib.load(LABEL_ENCODER_UV_RISK_PATH)
+    multioutput_model = joblib.load(MULTI_OUTPUT_MODEL_PATH)
+    multi_health_risk_les = joblib.load(MULTI_LABEL_ENCODERS_PATH)
+except Exception as e:
+    uv_risk_model = None
+    shared_scaler = None
+    uv_risk_le = None
+    multioutput_model = None
+    multi_health_risk_les = None
 
-# --- 3. Define the frontend route ---
-@app.route('/')
-def home():
-    """Serves the main HTML page for the frontend."""
-    return render_template('index.html')
-
-# --- 4. Define the prediction endpoint ---
-@app.route('/predict', methods=['POST'])
-def predict():
-    """
-    This endpoint accepts a POST request with new data,
-    makes a prediction, and returns the result as JSON.
-    """
+@app.route('/predict_uv_risk', methods=['POST'])
+def predict_uv_risk():
+    if uv_risk_model is None or shared_scaler is None or uv_risk_le is None:
+        return jsonify({"error": "UV Risk model, scaler, or label encoder not loaded. Check server logs."}), 500
     try:
-        data = request.get_json(force=True)
-        input_data = np.array(data['input_data'])
-
-        # --- Use the loaded objects to preprocess and predict ---
-        # 1. Scale the input data (6 features)
-        scaled_data = scaler.transform(input_data)
-
-        # 2. Slice the data to match the model's expected 5 features
-        model_input = scaled_data[:, :-1]
-
-        # 3. Make a prediction using the alert model (5 features)
-        predictions_encoded = alert_model.predict(model_input)
-
-        # 4. Decode the numerical prediction back to a human-readable label
-        predictions_decoded = label_encoder.inverse_transform(predictions_encoded.flatten())
-
-        # Prepare and return the JSON response
-        response = {'prediction': predictions_decoded.tolist()}
-        return jsonify(response)
-
+        data = request.get_json()
+        required_features = shared_scaler.feature_names_in_
+        input_data = {}
+        for feature in required_features:
+            if feature not in data:
+                return jsonify({"error": f"Missing feature: {feature}"}), 400
+            input_data[feature] = data[feature]
+        sample_df_original = pd.DataFrame([input_data])
+        sample_scaled = shared_scaler.transform(sample_df_original[required_features])
+        sample_pred_encoded = uv_risk_model.predict(sample_scaled)
+        predicted_level_decoded = uv_risk_le.inverse_transform(sample_pred_encoded.astype(int))
+        predicted_level = str(predicted_level_decoded[0])
+        return jsonify({"predicted_uv_risk_level": predicted_level}), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 400
+        return jsonify({"error": str(e)}), 500
+@app.route('/predict_health_risk', methods=['POST'])
+def predict_health_risk():
+    if multioutput_model is None or multi_health_risk_les is None:
+        return jsonify({"error": "Multioutput model or multi-label encoders not loaded. Check server logs."}), 500
+    try:
+        data = request.get_json()
+        required_features = [
+            'Heart Rate (bpm)',
+            'SpO2 Level (%)',
+            'Systolic Blood Pressure (mmHg)',
+            'Diastolic Blood Pressure (mmHg)',
+            'Body Temperature (°C)',
+            'Fall Detection'
+        ]
+        targets_order = [
+            'Heart Rate Alert',
+            'SpO2 Level Alert',
+            'Blood Pressure Alert',
+            'Temperature Alert'
+        ]
+        input_data = {}
+        for feature in required_features:
+            if feature not in data:
+                return jsonify({"error": f"Missing feature: {feature}"}), 400
+            input_data[feature] = data[feature]
 
-# --- 5. Run the Flask application ---
+        # Convert 'Fall Detection' from string to integer
+        if 'Fall Detection' in input_data:
+            input_data['Fall Detection'] = 1 if input_data['Fall Detection'].lower() == 'yes' else 0
+
+        sample_df_original = pd.DataFrame([input_data])
+
+        # The model was trained on unscaled data, so it should be used directly.
+        sample_pred_encoded = multioutput_model.predict(sample_df_original[required_features])
+
+        single_sample_predictions_encoded = sample_pred_encoded[0].astype(int)
+        predicted_levels_decoded = {}
+        for i, target_col in enumerate(targets_order):
+            encoded_value = single_sample_predictions_encoded[i]
+            specific_le = multi_health_risk_les[target_col]
+            decoded_value = str(specific_le.inverse_transform([encoded_value])[0])
+            predicted_levels_decoded[target_col] = decoded_value
+        return jsonify({"predicted_health_risk_levels": predicted_levels_decoded}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
 if __name__ == '__main__':
-    app.run(port=5000, debug=True)
+    app.run(debug=True, host='0.0.0.0', port=5000)
