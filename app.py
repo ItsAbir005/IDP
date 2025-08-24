@@ -1,15 +1,20 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 import joblib
 import pandas as pd
 import numpy as np
+from flask_cors import CORS
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static', static_url_path='')
 
 MODEL_PATH = 'xgboost_uv_risk.joblib'
 SCALER_PATH = 'scaler_reduced.joblib'
 LABEL_ENCODER_UV_RISK_PATH = 'label_encoder.joblib'
 MULTI_OUTPUT_MODEL_PATH = 'multioutput_model.joblib'
 MULTI_LABEL_ENCODERS_PATH = 'label_encoder_1.joblib'
+SLEEP_MULTI_OUTPUT_MODEL_PATH = 'multioutput_sleep_model.joblib'
+SLEEP_LABEL_ENCODERS_PATH = 'sleep_label_encoders.joblib'
+
+CORS(app)
 
 try:
     uv_risk_model = joblib.load(MODEL_PATH)
@@ -17,12 +22,25 @@ try:
     uv_risk_le = joblib.load(LABEL_ENCODER_UV_RISK_PATH)
     multioutput_model = joblib.load(MULTI_OUTPUT_MODEL_PATH)
     multi_health_risk_les = joblib.load(MULTI_LABEL_ENCODERS_PATH)
+    sleep_multioutput_model = joblib.load(SLEEP_MULTI_OUTPUT_MODEL_PATH)
+    sleep_label_encoders_dict = joblib.load(SLEEP_LABEL_ENCODERS_PATH)
 except Exception as e:
+    print(f"Error loading models: {e}")
     uv_risk_model = None
     shared_scaler = None
     uv_risk_le = None
     multioutput_model = None
     multi_health_risk_les = None
+    sleep_multioutput_model = None
+    sleep_label_encoders_dict = None
+
+@app.route('/')
+def serve_react_app():
+    return send_from_directory(app.static_folder, 'index.html')
+
+@app.route('/<path:filename>')
+def serve_static(filename):
+    return send_from_directory(app.static_folder, filename)
 
 @app.route('/predict_uv_risk', methods=['POST'])
 def predict_uv_risk():
@@ -36,14 +54,17 @@ def predict_uv_risk():
             if feature not in data:
                 return jsonify({"error": f"Missing feature: {feature}"}), 400
             input_data[feature] = data[feature]
+        
         sample_df_original = pd.DataFrame([input_data])
         sample_scaled = shared_scaler.transform(sample_df_original[required_features])
         sample_pred_encoded = uv_risk_model.predict(sample_scaled)
+        
         predicted_level_decoded = uv_risk_le.inverse_transform(sample_pred_encoded.astype(int))
         predicted_level = str(predicted_level_decoded[0])
         return jsonify({"predicted_uv_risk_level": predicted_level}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 @app.route('/predict_health_risk', methods=['POST'])
 def predict_health_risk():
     if multioutput_model is None or multi_health_risk_les is None:
@@ -70,13 +91,10 @@ def predict_health_risk():
                 return jsonify({"error": f"Missing feature: {feature}"}), 400
             input_data[feature] = data[feature]
 
-        # Convert 'Fall Detection' from string to integer
         if 'Fall Detection' in input_data:
             input_data['Fall Detection'] = 1 if input_data['Fall Detection'].lower() == 'yes' else 0
 
         sample_df_original = pd.DataFrame([input_data])
-
-        # The model was trained on unscaled data, so it should be used directly.
         sample_pred_encoded = multioutput_model.predict(sample_df_original[required_features])
 
         single_sample_predictions_encoded = sample_pred_encoded[0].astype(int)
@@ -89,6 +107,48 @@ def predict_health_risk():
         return jsonify({"predicted_health_risk_levels": predicted_levels_decoded}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-    
+
+@app.route('/predict_sleep_metrics', methods=['POST'])
+def predict_sleep_metrics():
+    if sleep_multioutput_model is None or sleep_label_encoders_dict is None:
+        return jsonify({"error": "Sleep prediction model or label encoders not loaded. Check server logs."}), 500
+
+    try:
+        data = request.get_json()
+
+        required_sleep_features = [
+            'Sleep Duration',
+            'Quality of Sleep',
+            'Physical Activity Level'
+        ]
+
+        sleep_targets_order = [
+            'Sleep Quality Category',
+            'Sleep Alert'
+        ]
+
+        input_data = {}
+        for feature in required_sleep_features:
+            if feature not in data:
+                return jsonify({"error": f"Missing feature for sleep prediction: {feature}"}), 400
+            input_data[feature] = data[feature]
+
+        sample_df_sleep_original = pd.DataFrame([input_data])
+        sleep_predictions_encoded = sleep_multioutput_model.predict(sample_df_sleep_original[required_sleep_features])
+
+        single_sample_sleep_predictions_encoded = sleep_predictions_encoded[0].astype(int)
+
+        predicted_sleep_metrics_decoded = {}
+        for i, target_col in enumerate(sleep_targets_order):
+            encoded_value = single_sample_sleep_predictions_encoded[i]
+            specific_sleep_le = sleep_label_encoders_dict[target_col]
+            decoded_value = str(specific_sleep_le.inverse_transform([encoded_value])[0])
+            predicted_sleep_metrics_decoded[target_col] = decoded_value
+
+        return jsonify({"predicted_sleep_metrics": predicted_sleep_metrics_decoded}), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
