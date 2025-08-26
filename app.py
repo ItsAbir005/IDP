@@ -3,9 +3,13 @@ import joblib
 import pandas as pd
 import numpy as np
 from flask_cors import CORS
+import os
 
-app = Flask(__name__, static_folder='static', static_url_path='')
+# IMPORTANT: Updated static_folder to point to 'health-dashboard-vite/dist'
+# This path is relative to where app.py is run.
+app = Flask(__name__, static_folder='health-dashboard-vite/dist', static_url_path='')
 
+# Model paths - ensure these are correct relative to app.py
 MODEL_PATH = 'xgboost_uv_risk.joblib'
 SCALER_PATH = 'scaler_reduced.joblib'
 LABEL_ENCODER_UV_RISK_PATH = 'label_encoder.joblib'
@@ -14,8 +18,12 @@ MULTI_LABEL_ENCODERS_PATH = 'label_encoder_1.joblib'
 SLEEP_MULTI_OUTPUT_MODEL_PATH = 'multioutput_sleep_model.joblib'
 SLEEP_LABEL_ENCODERS_PATH = 'sleep_label_encoders.joblib'
 
-CORS(app)
+# CORS is generally not needed if Flask is serving both frontend and backend from the same origin.
+# You can remove or comment this out for production deployment if your frontend is served by Flask.
+# If you have other client applications (e.g., mobile app) that need to access this API, keep CORS.
+CORS(app) # Keeping it active for dev, but consider removing for single-origin production.
 
+# Load models and scalers
 try:
     uv_risk_model = joblib.load(MODEL_PATH)
     shared_scaler = joblib.load(SCALER_PATH)
@@ -24,6 +32,7 @@ try:
     multi_health_risk_les = joblib.load(MULTI_LABEL_ENCODERS_PATH)
     sleep_multioutput_model = joblib.load(SLEEP_MULTI_OUTPUT_MODEL_PATH)
     sleep_label_encoders_dict = joblib.load(SLEEP_LABEL_ENCODERS_PATH)
+    print("All models loaded successfully!")
 except Exception as e:
     print(f"Error loading models: {e}")
     uv_risk_model = None
@@ -34,15 +43,22 @@ except Exception as e:
     sleep_multioutput_model = None
     sleep_label_encoders_dict = None
 
-@app.route('/')
-def serve_react_app():
+# Route to serve the React frontend's index.html and other static files.
+# This is crucial for single-page applications.
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve_react_app(path):
+    file_path = os.path.join(app.static_folder, path)
+    
+    if path != "" and os.path.exists(file_path):
+        return send_from_directory(app.static_folder, path)
+    
     return send_from_directory(app.static_folder, 'index.html')
 
-@app.route('/<path:filename>')
-def serve_static(filename):
-    return send_from_directory(app.static_folder, filename)
 
-@app.route('/predict_uv_risk', methods=['POST'])
+# --- API Endpoints ---
+# IMPORTANT: Added '/api' prefix to all API routes
+@app.route('/api/predict_uv_risk', methods=['POST'])
 def predict_uv_risk():
     if uv_risk_model is None or shared_scaler is None or uv_risk_le is None:
         return jsonify({"error": "UV Risk model, scaler, or label encoder not loaded. Check server logs."}), 500
@@ -63,9 +79,10 @@ def predict_uv_risk():
         predicted_level = str(predicted_level_decoded[0])
         return jsonify({"predicted_uv_risk_level": predicted_level}), 200
     except Exception as e:
+        print(f"Error in predict_uv_risk: {e}")
         return jsonify({"error": str(e)}), 500
 
-@app.route('/predict_health_risk', methods=['POST'])
+@app.route('/api/predict_health_risk', methods=['POST'])
 def predict_health_risk():
     if multioutput_model is None or multi_health_risk_les is None:
         return jsonify({"error": "Multioutput model or multi-label encoders not loaded. Check server logs."}), 500
@@ -92,7 +109,7 @@ def predict_health_risk():
             input_data[feature] = data[feature]
 
         if 'Fall Detection' in input_data:
-            input_data['Fall Detection'] = 1 if input_data['Fall Detection'].lower() == 'yes' else 0
+            input_data['Fall Detection'] = 1 if str(input_data['Fall Detection']).lower() == 'yes' else 0
 
         sample_df_original = pd.DataFrame([input_data])
         sample_pred_encoded = multioutput_model.predict(sample_df_original[required_features])
@@ -106,9 +123,10 @@ def predict_health_risk():
             predicted_levels_decoded[target_col] = decoded_value
         return jsonify({"predicted_health_risk_levels": predicted_levels_decoded}), 200
     except Exception as e:
+        print(f"Error in predict_health_risk: {e}")
         return jsonify({"error": str(e)}), 500
 
-@app.route('/predict_sleep_metrics', methods=['POST'])
+@app.route('/api/predict_sleep_metrics', methods=['POST'])
 def predict_sleep_metrics():
     if sleep_multioutput_model is None or sleep_label_encoders_dict is None:
         return jsonify({"error": "Sleep prediction model or label encoders not loaded. Check server logs."}), 500
@@ -148,6 +166,7 @@ def predict_sleep_metrics():
         return jsonify({"predicted_sleep_metrics": predicted_sleep_metrics_decoded}), 200
 
     except Exception as e:
+        print(f"Error in predict_sleep_metrics: {e}")
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':

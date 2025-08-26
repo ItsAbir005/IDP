@@ -51,8 +51,8 @@ const UVRiskPrediction = () => {
         }
 
         try {
-            // !!! IMPORTANT: Added '/api' prefix here !!!
-            const response = await fetch('/api/predict_uv_risk', {
+            // IMPORTANT: Removed '/api' prefix
+            const response = await fetch('/predict_uv_risk', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(Object.fromEntries(Object.entries(formData).map(([key, value]) => [key, parseFloat(value)])))
@@ -64,7 +64,7 @@ const UVRiskPrediction = () => {
                 setError(data.error || 'Failed to predict UV risk.');
             }
         } catch (err) {
-            setError('Network error or server unavailable. Check if Flask backend is running and Vite proxy is configured correctly.');
+            setError('Network error or server unavailable. Check if Flask backend is running.');
             console.error('Error:', err);
         } finally {
             setLoading(false);
@@ -151,8 +151,8 @@ const HealthRiskPrediction = () => {
         }
 
         try {
-            // !!! IMPORTANT: Added '/api' prefix here !!!
-            const response = await fetch('/api/predict_health_risk', {
+            // IMPORTANT: Removed '/api' prefix
+            const response = await fetch('/predict_health_risk', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(dataToSend)
@@ -164,7 +164,7 @@ const HealthRiskPrediction = () => {
                 setError(data.error || 'Failed to predict health risk.');
             }
         } catch (err) {
-            setError('Network error or server unavailable. Check if Flask backend is running and Vite proxy is configured correctly.');
+            setError('Network error or server unavailable. Check if Flask backend is running.');
             console.error('Error:', err);
         } finally {
             setLoading(false);
@@ -281,8 +281,8 @@ const SleepMetricsPrediction = () => {
         }
 
         try {
-            // !!! IMPORTANT: Added '/api' prefix here !!!
-            const response = await fetch('/api/predict_sleep_metrics', {
+            // IMPORTANT: Removed '/api' prefix
+            const response = await fetch('/predict_sleep_metrics', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(Object.fromEntries(Object.entries(formData).map(([key, value]) => [key, parseFloat(value)])))
@@ -294,7 +294,7 @@ const SleepMetricsPrediction = () => {
                 setError(data.error || 'Failed to predict sleep metrics.');
             }
         } catch (err) {
-            setError('Network error or server unavailable. Check if Flask backend is running and Vite proxy is configured correctly.');
+            setError('Network error or server unavailable. Check if Flask backend is running.');
             console.error('Error:', err);
         } finally {
             setLoading(false);
