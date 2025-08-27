@@ -4,12 +4,8 @@ import pandas as pd
 import numpy as np
 from flask_cors import CORS
 import os
-
-# IMPORTANT: Updated static_folder to point to 'health-dashboard-vite/dist'
-# This path is relative to where app.py is run.
 app = Flask(__name__, static_folder='health-dashboard-vite/dist', static_url_path='')
 
-# Model paths - ensure these are correct relative to app.py
 MODEL_PATH = 'xgboost_uv_risk.joblib'
 SCALER_PATH = 'scaler_reduced.joblib'
 LABEL_ENCODER_UV_RISK_PATH = 'label_encoder.joblib'
