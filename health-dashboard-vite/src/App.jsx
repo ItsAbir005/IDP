@@ -51,8 +51,8 @@ const UVRiskPrediction = () => {
         }
 
         try {
-            // IMPORTANT: Removed '/api' prefix
-            const response = await fetch('/predict_uv_risk', {
+            // IMPORTANT: Re-added '/api' prefix to match Flask's route
+            const response = await fetch('/api/predict_uv_risk', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(Object.fromEntries(Object.entries(formData).map(([key, value]) => [key, parseFloat(value)])))
@@ -151,8 +151,8 @@ const HealthRiskPrediction = () => {
         }
 
         try {
-            // IMPORTANT: Removed '/api' prefix
-            const response = await fetch('/predict_health_risk', {
+            // IMPORTANT: Re-added '/api' prefix to match Flask's route
+            const response = await fetch('/api/predict_health_risk', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(dataToSend)
@@ -230,7 +230,7 @@ const HealthRiskPrediction = () => {
                 </div>
                 <button
                     type="submit"
-                    className="w-full bg-gradient-to-r from-indigo-500 to-blue-500 text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:from-indigo-600 hover:to-blue-600 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-opacity-75 transition duration-300 ease-in-out transform hover:-translate-y-0.5"
+                    className="w-full bg-gradient-to-r from-indigo-500 to-blue-500 text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:from-indigo-600 hover:to-blue-600 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-opacity75 transition duration-300 ease-in-out transform hover:-translate-y-0.5"
                     disabled={loading}
                 >
                     {loading ? 'Predicting...' : 'Predict Health Risk'}
@@ -281,8 +281,8 @@ const SleepMetricsPrediction = () => {
         }
 
         try {
-            // IMPORTANT: Removed '/api' prefix
-            const response = await fetch('/predict_sleep_metrics', {
+            // IMPORTANT: Re-added '/api' prefix to match Flask's route
+            const response = await fetch('/api/predict_sleep_metrics', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(Object.fromEntries(Object.entries(formData).map(([key, value]) => [key, parseFloat(value)])))
@@ -303,7 +303,7 @@ const SleepMetricsPrediction = () => {
 
     return (
         <div className="bg-white rounded-3xl shadow-xl p-6 sm:p-8 border border-green-200 flex flex-col h-full transform transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl">
-            <h2 className="text-3xl font-bold text-gray-900 mb-6 text-center">😴 Sleep Metrics Prediction</h2>
+                <h2 className="text-3xl font-bold text-gray-900 mb-6 text-center">😴 Sleep Metrics Prediction</h2>
             <form onSubmit={handleSubmit} className="space-y-4 flex-grow">
                 <div>
                     <label htmlFor="Sleep Duration" className="block text-gray-700 text-sm font-semibold mb-1">Sleep Duration (hours)</label>
