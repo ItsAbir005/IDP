@@ -1,19 +1,26 @@
 import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
 import Dashboard from "./pages/Dashboard";
 import LogVitals from "./pages/LogVitals";
+import ChatBot from "./pages/ChatBot";
 
 function App() {
   return (
     <BrowserRouter>
-      <nav className="bg-blue-600 text-white p-3 flex gap-4">
-        <Link to="/">Dashboard</Link>
-        <Link to="/log">Log Vitals</Link>
+      {/* Navigation Bar */}
+      <nav className="bg-blue-600 text-white p-3 flex justify-center gap-8 shadow-md">
+        <Link to="/" className="hover:text-gray-200 font-medium">Dashboard</Link>
+        <Link to="/log" className="hover:text-gray-200 font-medium">Log Vitals</Link>
+        <Link to="/chat" className="hover:text-gray-200 font-medium">Chat Bot</Link>
       </nav>
 
-      <Routes>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/log" element={<LogVitals />} />
-      </Routes>
+      {/* Page Routes */}
+      <div className="p-6">
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/log" element={<LogVitals />} />
+          <Route path="/chat" element={<ChatBot />} />
+        </Routes>
+      </div>
     </BrowserRouter>
   );
 }
