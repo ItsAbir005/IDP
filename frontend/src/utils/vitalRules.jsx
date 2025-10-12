@@ -1,26 +1,29 @@
+//frontend/src/utils/vitalRules.jsx
 export const checkAbnormalVitals = (vitals) => {
   const alerts = [];
 
-  if (!vitals) return alerts;
+  if (vitals.heartRate < 60 || vitals.heartRate > 100) {
+    alerts.push(`⚠️ Abnormal Heart Rate: ${vitals.heartRate} bpm`);
+  }
 
-  const { heartRate, spo2, bp, temp } = vitals;
+  if (vitals.spo2 < 95) {
+    alerts.push(`🩸 Low SpO₂: ${vitals.spo2}%`);
+  }
 
-  // Convert numeric values safely
-  const hr = Number(heartRate);
-  const sp = Number(spo2);
-  const tp = Number(temp);
+  const [systolic, diastolic] = vitals.bp.split("/").map(Number);
+  if (systolic > 130 || diastolic > 85) {
+    alerts.push(`💢 High Blood Pressure: ${vitals.bp} mmHg`);
+  }
 
-  if (hr > 120) alerts.push("High Heart Rate detected (>120 bpm)");
-  else if (hr < 50) alerts.push("Low Heart Rate detected (<50 bpm)");
+  if (vitals.temp > 99.5) {
+    alerts.push(`🌡️ High Temperature: ${vitals.temp}°F`);
+  } else if (vitals.temp < 95) {
+    alerts.push(`🥶 Low Temperature: ${vitals.temp}°F`);
+  }
 
-  if (sp < 95) alerts.push("Low SpO₂ detected (<95%)");
-
-  const [sys, dia] = bp.split("/").map(Number);
-  if (sys > 140 || dia > 90) alerts.push("High Blood Pressure detected");
-  else if (sys < 90 || dia < 60) alerts.push("Low Blood Pressure detected");
-
-  if (tp > 100.4) alerts.push("High Body Temperature detected (>100.4°F)");
-  else if (tp < 95) alerts.push("Low Body Temperature detected (<95°F)");
+  if (vitals.steps < 5000) {
+    alerts.push(`🚶‍♂️ Low Activity Level: Only ${vitals.steps} steps today`);
+  }
 
   return alerts;
 };

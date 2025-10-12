@@ -1,3 +1,4 @@
+//frontend/src/pages/ChatBot.jsx
 import React, { useState, useEffect, useRef } from "react";
 
 function ChatBot() {
@@ -9,7 +10,9 @@ function ChatBot() {
   // Load vitals from localStorage
   useEffect(() => {
     const savedVitals = JSON.parse(localStorage.getItem("vitals"));
-    if (savedVitals) setVitals(savedVitals);
+    if (savedVitals && savedVitals.length > 0) {
+      setVitals(savedVitals[savedVitals.length - 1]); 
+    }
   }, []);
 
   useEffect(() => {
@@ -48,9 +51,8 @@ function ChatBot() {
         {messages.map((m, i) => (
           <div key={i} className={`my-2 ${m.sender === "user" ? "text-right" : "text-left"}`}>
             <span
-              className={`inline-block px-3 py-2 rounded-lg ${
-                m.sender === "user" ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-800"
-              }`}
+              className={`inline-block px-3 py-2 rounded-lg ${m.sender === "user" ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-800"
+                }`}
             >
               {m.text}
             </span>

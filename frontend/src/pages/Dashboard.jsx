@@ -1,3 +1,4 @@
+//frontend/src/pages/Dashboard.jsx
 import React, { useEffect } from "react";
 import VitalCard from "../components/VitalCard";
 import { useLocalStorage } from "../hooks/useLocalStorage";
