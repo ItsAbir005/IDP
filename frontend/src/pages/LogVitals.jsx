@@ -19,7 +19,12 @@ const LogVitals = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     const timestamp = new Date().toLocaleString();
-    setVitals([...vitals, { ...form, timestamp }]);
+    const newVitals = [...vitals, { ...form, timestamp }];
+
+    // ✅ Update localStorage and trigger refresh event
+    setVitals(newVitals);
+    window.dispatchEvent(new Event("storage")); // 🔥 notify other tabs/components
+
     setForm({ heartRate: "", spo2: "", bp: "", temp: "", steps: "" });
     alert("Vitals logged successfully ✅");
   };

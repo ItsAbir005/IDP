@@ -1,12 +1,15 @@
-//frontend/src/pages/Dashboard.jsx
-import React, { useEffect } from "react";
+// frontend/src/pages/Dashboard.jsx
+import React, { useEffect, useState } from "react";
 import VitalCard from "../components/VitalCard";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { checkAbnormalVitals } from "../utils/vitalRules";
 import toast, { Toaster } from "react-hot-toast";
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 
 const Dashboard = () => {
   const [vitals] = useLocalStorage("vitals", []);
+  const [data, setData] = useState([]);
+
   const latest = vitals.length ? vitals[vitals.length - 1] : null;
 
   useEffect(() => {
@@ -15,6 +18,17 @@ const Dashboard = () => {
       alerts.forEach(msg => toast.error(msg, { duration: 4000 }));
     }
   }, [latest]);
+
+  useEffect(() => {
+    setData(
+      vitals.map((v, index) => ({
+        name: `#${index + 1}`,
+        heartRate: Number(v.heartRate),
+        spo2: Number(v.spo2),
+        temp: Number(v.temp),
+      }))
+    );
+  }, [vitals]);
 
   if (!latest) {
     return (
@@ -25,11 +39,12 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8 relative">
+    <div className="min-h-screen bg-gray-50 p-8">
       <Toaster position="top-right" />
-      <h1 className="text-3xl font-bold mb-6 text-gray-700">Health Dashboard</h1>
+      <h1 className="text-3xl font-bold mb-6 text-gray-700 text-center">🏥 Health Dashboard</h1>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+      {/* Vital Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
         <VitalCard title="Heart Rate" value={latest.heartRate} unit="bpm" statusColor="border-green-500" />
         <VitalCard title="SpO₂" value={latest.spo2} unit="%" statusColor="border-green-500" />
         <VitalCard title="Blood Pressure" value={latest.bp} unit="mmHg" statusColor="border-green-500" />
@@ -37,7 +52,28 @@ const Dashboard = () => {
         <VitalCard title="Steps" value={latest.steps} unit="steps" statusColor="border-yellow-500" />
       </div>
 
-      <p className="mt-6 text-gray-500 text-sm">Last updated: {latest.timestamp}</p>
+      {/* Chart Section */}
+      <div className="bg-white p-6 rounded-2xl shadow-lg">
+        <h2 className="text-lg font-semibold mb-4 text-gray-700">📈 Heart Rate & SpO₂ Trend</h2>
+        {data.length > 1 ? (
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={data}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" />
+              <YAxis />
+              <Tooltip />
+              <Line type="monotone" dataKey="heartRate" stroke="#ef4444" strokeWidth={2} />
+              <Line type="monotone" dataKey="spo2" stroke="#3b82f6" strokeWidth={2} />
+            </LineChart>
+          </ResponsiveContainer>
+        ) : (
+          <p className="text-gray-500 text-sm text-center">Not enough data for trend chart yet</p>
+        )}
+      </div>
+
+      <p className="mt-6 text-gray-500 text-sm text-center">
+        Last updated: {latest.timestamp}
+      </p>
     </div>
   );
 };
