@@ -1,6 +1,8 @@
 // frontend/src/pages/LogVitals.jsx
 import React, { useState } from "react";
 import { useLocalStorage } from "../hooks/useLocalStorage";
+import { updateStreak } from "../utils/streakUtils";
+import { calculatePoints, updatePoints } from "../utils/pointsUtils";
 
 const LogVitals = () => {
   const [vitals, setVitals] = useLocalStorage("vitals", []);
@@ -17,17 +19,23 @@ const LogVitals = () => {
   };
 
   const handleSubmit = (e) => {
-    e.preventDefault();
-    const timestamp = new Date().toLocaleString();
-    const newVitals = [...vitals, { ...form, timestamp }];
+  e.preventDefault();
+  const timestamp = new Date().toLocaleString();
+  const newVitals = { ...form, timestamp };
 
-    // ✅ Update localStorage and trigger refresh event
-    setVitals(newVitals);
-    window.dispatchEvent(new Event("storage")); // 🔥 notify other tabs/components
+  setVitals([...vitals, newVitals]);
+  window.dispatchEvent(new Event("storage"));
 
-    setForm({ heartRate: "", spo2: "", bp: "", temp: "", steps: "" });
-    alert("Vitals logged successfully ✅");
-  };
+  // 🔥 Gamification logic
+  const streak = updateStreak();
+  const earnedPoints = calculatePoints(form);
+  const totalPoints = updatePoints(earnedPoints);
+
+  alert(`✅ Vitals logged! Streak: ${streak} days | +${earnedPoints} pts | Total: ${totalPoints} ⭐`);
+
+  setForm({ heartRate: "", spo2: "", bp: "", temp: "", steps: "" });
+};
+
 
   return (
     <div className="min-h-screen bg-gray-50 flex justify-center items-center">

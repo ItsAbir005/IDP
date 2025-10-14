@@ -5,6 +5,8 @@ import { useLocalStorage } from "../hooks/useLocalStorage";
 import { checkAbnormalVitals } from "../utils/vitalRules";
 import toast, { Toaster } from "react-hot-toast";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+const streak = localStorage.getItem("streak") || 0;
+const points = localStorage.getItem("points") || 0;
 
 const Dashboard = () => {
   const [vitals] = useLocalStorage("vitals", []);
@@ -51,6 +53,17 @@ const Dashboard = () => {
         <VitalCard title="Temperature" value={latest.temp} unit="°F" statusColor="border-green-500" />
         <VitalCard title="Steps" value={latest.steps} unit="steps" statusColor="border-yellow-500" />
       </div>
+      {/* Streak and Points */}
+      <div className="flex justify-center gap-6 mb-6">
+        <div className="bg-white shadow p-4 rounded-xl text-center w-40">
+          <h3 className="text-gray-600">🔥 Streak</h3>
+          <p className="text-2xl font-bold text-blue-600">{streak} days</p>
+        </div>
+        <div className="bg-white shadow p-4 rounded-xl text-center w-40">
+          <h3 className="text-gray-600">⭐ Points</h3>
+          <p className="text-2xl font-bold text-green-600">{points}</p>
+        </div>
+      </div>
 
       {/* Chart Section */}
       <div className="bg-white p-6 rounded-2xl shadow-lg">
@@ -70,6 +83,7 @@ const Dashboard = () => {
           <p className="text-gray-500 text-sm text-center">Not enough data for trend chart yet</p>
         )}
       </div>
+
 
       <p className="mt-6 text-gray-500 text-sm text-center">
         Last updated: {latest.timestamp}
