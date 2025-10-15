@@ -1,19 +1,29 @@
-// frontend/src/utils/streakUtils.jsx
+// frontend/src/utils/streakUtils.js
+
+import { getLocalStorage, setLocalStorage } from "./storageUtils";
+
 export function updateStreak() {
-  const today = new Date().toDateString();
-  const lastLogDate = localStorage.getItem("lastLogDate");
-  const streak = parseInt(localStorage.getItem("streak") || "0");
+  const today = new Date().toLocaleDateString();
+  const lastLog = getLocalStorage("lastLogDate");
+  let streak = Number(getLocalStorage("streak") || 0);
 
-  if (lastLogDate === today) return streak; // already logged today
-
-  let newStreak = streak;
-  if (lastLogDate && new Date(lastLogDate).getDate() + 1 === new Date().getDate()) {
-    newStreak += 1; // consecutive day
+  if (!lastLog) {
+    // first time logging
+    streak = 1;
   } else {
-    newStreak = 1; // reset streak
+    const lastDate = new Date(lastLog);
+    const diffDays = Math.floor(
+      (new Date(today) - lastDate) / (1000 * 60 * 60 * 24)
+    );
+
+    if (diffDays === 1) {
+      streak += 1; // consecutive day
+    } else if (diffDays > 1) {
+      streak = 1; // streak broken, restart
+    }
   }
 
-  localStorage.setItem("streak", newStreak);
-  localStorage.setItem("lastLogDate", today);
-  return newStreak;
+  setLocalStorage("streak", streak);
+  setLocalStorage("lastLogDate", today);
+  return streak;
 }

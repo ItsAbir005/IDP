@@ -1,26 +1,49 @@
-// frontend/src/pages/Dashboard.jsx
 import React, { useEffect, useState } from "react";
 import VitalCard from "../components/VitalCard";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { checkAbnormalVitals } from "../utils/vitalRules";
 import toast, { Toaster } from "react-hot-toast";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
-const streak = localStorage.getItem("streak") || 0;
-const points = localStorage.getItem("points") || 0;
 
 const Dashboard = () => {
   const [vitals] = useLocalStorage("vitals", []);
   const [data, setData] = useState([]);
+  const streak = localStorage.getItem("streak") || 0;
+  const points = localStorage.getItem("points") || 0;
 
   const latest = vitals.length ? vitals[vitals.length - 1] : null;
 
+  // 🌟 Elegant Notifications for Abnormal Vitals
   useEffect(() => {
     if (latest) {
       const alerts = checkAbnormalVitals(latest);
-      alerts.forEach(msg => toast.error(msg, { duration: 4000 }));
+      alerts.forEach(msg =>
+        toast.custom(
+          (t) => (
+            <div
+              className={`${
+                t.visible ? "animate-enter" : "animate-leave"
+              } max-w-sm w-full bg-white border-l-4 border-red-500 shadow-lg rounded-xl pointer-events-auto flex ring-1 ring-black ring-opacity-5 p-4`}
+            >
+              <div className="flex flex-col w-0 flex-1">
+                <p className="text-sm font-semibold text-red-600 mb-1">⚠️ Health Alert</p>
+                <p className="text-gray-700 text-sm">{msg}</p>
+              </div>
+              <button
+                onClick={() => toast.dismiss(t.id)}
+                className="ml-4 text-gray-400 hover:text-gray-600 transition"
+              >
+                ✖
+              </button>
+            </div>
+          ),
+          { duration: 5000 }
+        )
+      );
     }
   }, [latest]);
 
+  // 📈 Prepare chart data
   useEffect(() => {
     setData(
       vitals.map((v, index) => ({
@@ -42,7 +65,7 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">
-      <Toaster position="top-right" />
+      <Toaster position="top-right" toastOptions={{ duration: 4000 }} />
       <h1 className="text-3xl font-bold mb-6 text-gray-700 text-center">🏥 Health Dashboard</h1>
 
       {/* Vital Cards */}
@@ -53,6 +76,7 @@ const Dashboard = () => {
         <VitalCard title="Temperature" value={latest.temp} unit="°F" statusColor="border-green-500" />
         <VitalCard title="Steps" value={latest.steps} unit="steps" statusColor="border-yellow-500" />
       </div>
+
       {/* Streak and Points */}
       <div className="flex justify-center gap-6 mb-6">
         <div className="bg-white shadow p-4 rounded-xl text-center w-40">
@@ -83,7 +107,6 @@ const Dashboard = () => {
           <p className="text-gray-500 text-sm text-center">Not enough data for trend chart yet</p>
         )}
       </div>
-
 
       <p className="mt-6 text-gray-500 text-sm text-center">
         Last updated: {latest.timestamp}
