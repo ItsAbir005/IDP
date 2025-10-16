@@ -6,17 +6,38 @@ function ChatBot() {
   const [vitals, setVitals] = useState({});
   const chatEndRef = useRef(null);
 
-  // Load latest vitals from localStorage
+  // ✅ Load latest vitals
   useEffect(() => {
     const savedVitals = JSON.parse(localStorage.getItem("vitals"));
     if (savedVitals && savedVitals.length > 0) {
-      setVitals(savedVitals[savedVitals.length - 1]); // ✅ latest vitals only
+      setVitals(savedVitals[savedVitals.length - 1]);
     }
   }, []);
 
+  // ✅ Auto-scroll to bottom
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // ✅ 🌞 Daily Greeting from HealthMate
+  useEffect(() => {
+    const today = new Date().toLocaleDateString();
+    const lastGreeting = localStorage.getItem("lastGreeting");
+    const streak = localStorage.getItem("streak") || 0;
+
+    if (lastGreeting !== today) {
+      const greetMsg = streak >= 3
+        ? `👋 Welcome back! You're maintaining a ${streak}-day streak — amazing consistency! 💪`
+        : "🌟 Hello! Ready to log your vitals and keep building your health habits today?";
+      
+      setMessages((prev) => [
+        ...prev,
+        { sender: "bot", text: greetMsg, time: new Date().toLocaleTimeString() },
+      ]);
+
+      localStorage.setItem("lastGreeting", today);
+    }
+  }, []);
 
   const sendMessage = async () => {
     if (!input.trim()) return;
@@ -26,7 +47,6 @@ function ChatBot() {
     setMessages(updatedMessages);
     setInput("");
 
-    // Add temporary typing bubble
     setMessages((prev) => [...prev, { sender: "bot", text: "⏳ Typing...", time: "" }]);
 
     try {
@@ -36,16 +56,15 @@ function ChatBot() {
         body: JSON.stringify({
           message: input,
           vitals,
-          history: updatedMessages.slice(-5), // send last 5 messages
+          history: updatedMessages.slice(-5),
         }),
       });
 
       const data = await res.json();
 
-      // Replace typing bubble with real AI reply
       setMessages((prev) => {
         const temp = [...prev];
-        temp.pop(); // remove "Typing..." bubble
+        temp.pop();
         return [
           ...temp,
           { sender: "bot", text: data.reply, time: new Date().toLocaleTimeString() },
@@ -93,22 +112,17 @@ function ChatBot() {
       {/* Chat Area */}
       <div className="flex-1 overflow-y-auto border rounded-lg p-3 mb-3 h-96 bg-gray-50">
         {messages.map((m, i) => (
-          <div
-            key={i}
-            className={`my-2 flex ${m.sender === "user" ? "justify-end" : "justify-start"}`}
-          >
+          <div key={i} className={`my-2 flex ${m.sender === "user" ? "justify-end" : "justify-start"}`}>
             <div
               className={`px-3 py-2 rounded-lg max-w-[80%] ${
                 m.sender === "user"
-                  ? "bg-blue-600 text-white self-end"
+                  ? "bg-blue-600 text-white"
                   : "bg-gray-200 text-gray-800"
               }`}
             >
               <p>{m.text}</p>
               {m.time && (
-                <span className="block text-xs text-gray-400 mt-1 text-right">
-                  {m.time}
-                </span>
+                <span className="block text-xs text-gray-400 mt-1 text-right">{m.time}</span>
               )}
             </div>
           </div>

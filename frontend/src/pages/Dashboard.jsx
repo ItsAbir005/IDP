@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import VitalCard from "../components/VitalCard";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { checkAbnormalVitals } from "../utils/vitalRules";
+import { showMotivationalToast } from "../utils/motivationUtils";
 import toast, { Toaster } from "react-hot-toast";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 
@@ -21,9 +22,8 @@ const Dashboard = () => {
         toast.custom(
           (t) => (
             <div
-              className={`${
-                t.visible ? "animate-enter" : "animate-leave"
-              } max-w-sm w-full bg-white border-l-4 border-red-500 shadow-lg rounded-xl pointer-events-auto flex ring-1 ring-black ring-opacity-5 p-4`}
+              className={`${t.visible ? "animate-enter" : "animate-leave"
+                } max-w-sm w-full bg-white border-l-4 border-red-500 shadow-lg rounded-xl pointer-events-auto flex ring-1 ring-black ring-opacity-5 p-4`}
             >
               <div className="flex flex-col w-0 flex-1">
                 <p className="text-sm font-semibold text-red-600 mb-1">⚠️ Health Alert</p>
@@ -54,6 +54,15 @@ const Dashboard = () => {
       }))
     );
   }, [vitals]);
+  // 🎯 Motivational Toasts for Gamification
+  useEffect(() => {
+    if (latest) {
+      const streakNum = Number(streak);
+      const pointsNum = Number(points);
+      showMotivationalToast(streakNum, pointsNum);
+    }
+  }, [latest]);
+
 
   if (!latest) {
     return (
@@ -88,6 +97,18 @@ const Dashboard = () => {
           <p className="text-2xl font-bold text-green-600">{points}</p>
         </div>
       </div>
+      {/* Motivation Card */}
+      <div className="max-w-xl mx-auto mb-8">
+        <div className="bg-gradient-to-r from-blue-100 to-green-100 shadow p-5 rounded-2xl text-center border border-green-200">
+          <h3 className="text-lg font-semibold text-gray-700 mb-2">💬 Daily Motivation</h3>
+          <p className="text-gray-600 text-sm">
+            {streak >= 5
+              ? "🔥 Great job keeping your streak alive! Keep tracking your vitals every day!"
+              : "🌱 Small steps make strong habits — log your vitals today to keep growing!"}
+          </p>
+        </div>
+      </div>
+
 
       {/* Chart Section */}
       <div className="bg-white p-6 rounded-2xl shadow-lg">
