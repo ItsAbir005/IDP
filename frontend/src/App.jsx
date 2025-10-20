@@ -5,7 +5,6 @@ import LogVitals from "./pages/LogVitals";
 import ChatBot from "./pages/ChatBot";
 import History from "./pages/History";
 import Rewards from "./pages/Rewards";
-import Gamify from "./pages/Gamify";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 
@@ -52,9 +51,6 @@ function App() {
             </Link>
             <Link to="/rewards" className="hover:text-gray-200 font-medium">
               View Rewards
-            </Link>
-            <Link to="/gamify" className="hover:text-gray-200 font-medium">
-              Gamify
             </Link>
             <button
               className="ml-4 bg-red-500 px-2 py-1 rounded hover:bg-red-600"
@@ -110,14 +106,6 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Rewards />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/gamify"
-              element={
-                <ProtectedRoute>
-                  <Gamify />
                 </ProtectedRoute>
               }
             />
