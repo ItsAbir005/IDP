@@ -4,7 +4,7 @@ import Dashboard from "./pages/Dashboard";
 import LogVitals from "./pages/LogVitals";
 import ChatBot from "./pages/ChatBot";
 import History from "./pages/History";
-import Rewards from "./pages/Rewards";
+import GamifiedRewards from "./pages/Rewards";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 
@@ -105,11 +105,10 @@ function App() {
               path="/rewards"
               element={
                 <ProtectedRoute>
-                  <Rewards />
+                  <GamifiedRewards />
                 </ProtectedRoute>
               }
             />
-
             {/* Catch-all */}
             <Route path="*" element={<Navigate to={loggedIn ? "/" : "/login"} />} />
           </Routes>
