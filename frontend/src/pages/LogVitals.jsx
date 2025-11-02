@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useLocalStorage } from "../hooks/useLocalStorage";
+import { useLocalStorage, setUserData } from "../hooks/useLocalStorage";
 
 const LogVitals = () => {
   const [form, setForm] = useState({
@@ -25,6 +25,7 @@ const LogVitals = () => {
       const token = localStorage.getItem("token");
       if (!token) {
         alert("Please login first!");
+        setLoading(false);
         return;
       }
 
@@ -41,13 +42,13 @@ const LogVitals = () => {
 
       if (!res.ok) throw new Error(data.message || "Failed to log vitals");
 
-      // ✅ Update local vitals storage
+      // ✅ Update user-specific vitals storage
       const newVitals = { ...form, timestamp: new Date().toLocaleString() };
       setVitals([...vitals, newVitals]);
 
-      // ✅ Sync streak + points locally
-      localStorage.setItem("streak", data.newStreak);
-      localStorage.setItem("points", data.totalPoints);
+      // ✅ Sync streak + points with user-specific keys
+      setUserData("streak", data.newStreak);
+      setUserData("points", data.totalPoints);
 
       alert(
         `✅ Vitals logged successfully!\n🔥 Streak: ${data.newStreak} days\n⭐ Total Points: ${data.totalPoints}`
@@ -62,40 +63,103 @@ const LogVitals = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex justify-center items-center">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50 flex justify-center items-center p-4">
       <form
         onSubmit={handleSubmit}
-        className="bg-white shadow-xl p-8 rounded-2xl w-96"
+        className="bg-white shadow-2xl p-8 rounded-2xl w-full max-w-md"
       >
-        <h2 className="text-2xl font-bold mb-4 text-center text-gray-700">
-          Log Your Vitals
+        <h2 className="text-2xl font-bold mb-6 text-center text-gray-700">
+          📝 Log Your Vitals
         </h2>
 
-        {["heartRate", "spo2", "bp", "temp", "steps"].map((field) => (
-          <div key={field} className="mb-3">
-            <label className="block text-gray-600 capitalize mb-1">{field}</label>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-gray-600 font-medium mb-2">
+              💓 Heart Rate (bpm)
+            </label>
             <input
-              type="text"
-              name={field}
-              value={form[field]}
+              type="number"
+              name="heartRate"
+              value={form.heartRate}
               onChange={handleChange}
-              className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500"
-              placeholder={`Enter ${field}`}
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              placeholder="e.g., 72"
               required
             />
           </div>
-        ))}
+
+          <div>
+            <label className="block text-gray-600 font-medium mb-2">
+              🩸 SpO₂ (%)
+            </label>
+            <input
+              type="number"
+              name="spo2"
+              value={form.spo2}
+              onChange={handleChange}
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              placeholder="e.g., 98"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-gray-600 font-medium mb-2">
+              🩺 Blood Pressure (mmHg)
+            </label>
+            <input
+              type="text"
+              name="bp"
+              value={form.bp}
+              onChange={handleChange}
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              placeholder="e.g., 120/80"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-gray-600 font-medium mb-2">
+              🌡️ Temperature (°F)
+            </label>
+            <input
+              type="number"
+              step="0.1"
+              name="temp"
+              value={form.temp}
+              onChange={handleChange}
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              placeholder="e.g., 98.6"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-gray-600 font-medium mb-2">
+              👟 Steps
+            </label>
+            <input
+              type="number"
+              name="steps"
+              value={form.steps}
+              onChange={handleChange}
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              placeholder="e.g., 8000"
+              required
+            />
+          </div>
+        </div>
 
         <button
           type="submit"
           disabled={loading}
-          className={`w-full py-2 rounded-lg font-semibold text-white transition ${
+          className={`w-full mt-6 py-3 rounded-lg font-semibold text-white transition ${
             loading
               ? "bg-gray-400 cursor-not-allowed"
-              : "bg-blue-600 hover:bg-blue-700"
+              : "bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-xl"
           }`}
         >
-          {loading ? "Saving..." : "Save Vitals"}
+          {loading ? "Saving..." : "💾 Save Vitals"}
         </button>
       </form>
     </div>

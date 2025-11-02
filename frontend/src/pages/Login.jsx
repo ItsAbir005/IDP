@@ -5,11 +5,14 @@ import { useAuth } from "../App";
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { handleLogin } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    
     try {
       const res = await fetch("http://localhost:5000/api/auth/login", {
         method: "POST",
@@ -18,49 +21,72 @@ const Login = () => {
       });
 
       const data = await res.json();
+      
       if (res.ok) {
-        // Store token and user data in memory via context
+        // ✅ Store token in localStorage for persistence
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("userEmail", data.email);
+        localStorage.setItem("userName", data.name);
+        
+        // Update context
         handleLogin({ 
           token: data.token, 
           name: data.name, 
           email: data.email 
         });
+        
         alert(`Welcome back, ${data.name}!`);
-        // Navigate will happen automatically due to route protection
         navigate("/");
       } else {
-        alert(data.message);
+        alert(data.message || "Login failed");
       }
     } catch (err) {
-      alert("Server error");
+      console.error("Login error:", err);
+      alert("Server error. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex justify-center items-center bg-gray-100">
-      <form onSubmit={handleSubmit} className="bg-white p-6 rounded-xl shadow-md w-80">
-        <h2 className="text-xl font-bold mb-4 text-center">Login</h2>
+    <div className="min-h-screen flex justify-center items-center bg-gradient-to-br from-blue-50 to-green-50">
+      <form onSubmit={handleSubmit} className="bg-white p-8 rounded-2xl shadow-xl w-96">
+        <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">Login</h2>
+        
         <input
           type="email"
           placeholder="Email"
-          className="w-full p-2 mb-3 border rounded"
+          className="w-full p-3 mb-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
         />
+        
         <input
           type="password"
           placeholder="Password"
-          className="w-full p-2 mb-3 border rounded"
+          className="w-full p-3 mb-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
         />
-        <button className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
-          Login
+        
+        <button 
+          type="submit"
+          disabled={loading}
+          className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 font-semibold transition disabled:bg-gray-400 disabled:cursor-not-allowed"
+        >
+          {loading ? "Logging in..." : "Login"}
         </button>
-        <p className="text-sm text-center mt-3">
-          No account? <span onClick={() => navigate("/register")} className="text-blue-500 cursor-pointer hover:underline">Register</span>
+        
+        <p className="text-sm text-center mt-4 text-gray-600">
+          No account?{" "}
+          <span 
+            onClick={() => navigate("/register")} 
+            className="text-blue-600 cursor-pointer hover:underline font-medium"
+          >
+            Register
+          </span>
         </p>
       </form>
     </div>
