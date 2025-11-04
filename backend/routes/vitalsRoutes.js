@@ -26,52 +26,59 @@ router.post("/log-vitals", auth, async (req, res) => {
     if (!user) return res.status(404).json({ message: "User not found" });
 
     const now = new Date();
-    const today = now.toISOString().split("T")[0]; // e.g., "2025-10-10"
 
-    // --- Calculate streak logic ---
-    let streak = user.streak || 0;
-    let lastEntryDate = user.vitals?.length
-      ? user.vitals[user.vitals.length - 1].timestamp?.split("T")[0]
-      : null;
+    console.log("📝 Logging vitals for:", user.email);
 
-    if (lastEntryDate === today) {
-      // Already logged today, no streak change
-    } else if (
-      lastEntryDate &&
-      new Date(today) - new Date(lastEntryDate) === 86400000
-    ) {
-      // +1 day (continued streak)
-      streak += 1;
-    } else {
-      // Break streak
-      streak = 1;
-    }
+    // ✅ Update streak using model method
+    const newStreak = user.updateStreak();
+    
+    console.log("🔥 Streak updated:", newStreak);
 
-    // --- Points system ---
-    const pointsEarned = 10; // arbitrary: +10 points per log
-    const points = (user.points || 0) + pointsEarned;
+    // ✅ Points system
+    const pointsEarned = 10;
+    const totalPoints = (user.points || 0) + pointsEarned;
+    user.points = totalPoints;
 
-    // --- Save new vitals ---
+    // ✅ Save new vitals
     user.vitals.push({
       heartRate,
       spo2,
       bp,
       temp,
       steps,
-      timestamp: now.toISOString(),
+      timestamp: now,
     });
 
-    user.streak = streak;
-    user.points = points;
     await user.save();
+
+    console.log("✅ Vitals saved! Streak:", newStreak, "| Points:", totalPoints);
 
     res.json({
       message: "Vitals logged successfully!",
-      newStreak: streak,
-      totalPoints: points,
+      newStreak: newStreak,
+      totalPoints: totalPoints,
+      vitalsCount: user.vitals.length,
+      loggedToday: true,
     });
   } catch (err) {
     console.error("⚠️ Error logging vitals:", err);
+    res.status(500).json({ message: "Server error: " + err.message });
+  }
+});
+
+// ✅ Get all vitals for user
+router.get("/my-vitals", auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    res.json({
+      vitals: user.vitals,
+      streak: user.streak,
+      points: user.points,
+    });
+  } catch (err) {
+    console.error("⚠️ Error fetching vitals:", err);
     res.status(500).json({ message: "Server error" });
   }
 });

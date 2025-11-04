@@ -1,5 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import VitalCard from "../components/VitalCard";
+import EmergencyAlert from "../components/EmergencyAlert";
+import AIHealthPredictor from "../components/AIHealthPredictor";
 import { useLocalStorage, getUserData } from "../hooks/useLocalStorage";
 import { checkAbnormalVitals } from "../utils/vitalRules";
 import { showMotivationalToast } from "../utils/motivationUtils";
@@ -9,21 +11,39 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianG
 const Dashboard = () => {
   const [vitals] = useLocalStorage("vitals", []);
   const [data, setData] = useState([]);
-  const hasShownNotifications = useRef(false); // ✅ Prevent duplicate notifications
+  const [showEmergency, setShowEmergency] = useState(false);
+  const [showPredictor, setShowPredictor] = useState(false);
+  const hasShownNotifications = useRef(false);
   
-  // ✅ Get user-specific streak and points
   const userEmail = localStorage.getItem("userEmail");
   const streak = getUserData("streak") || 0;
   const points = getUserData("points") || 0;
 
   const latest = vitals.length ? vitals[vitals.length - 1] : null;
 
-  // ✅ Show notifications only once per session
+  // ✅ Check for emergency conditions
+  useEffect(() => {
+    if (latest) {
+      const isEmergency = 
+        latest.heartRate > 150 || 
+        latest.heartRate < 40 || 
+        latest.spo2 < 90 || 
+        latest.temp > 103;
+      
+      const [systolic, diastolic] = latest.bp.split("/").map(Number);
+      const bpEmergency = systolic > 180 || diastolic > 120;
+      
+      if (isEmergency || bpEmergency) {
+        setShowEmergency(true);
+      }
+    }
+  }, [latest?.timestamp]);
+
+  // ✅ Show notifications only once
   useEffect(() => {
     if (latest && !hasShownNotifications.current) {
       hasShownNotifications.current = true;
       
-      // Abnormal vitals alerts
       const alerts = checkAbnormalVitals(latest);
       if (alerts.length > 0) {
         alerts.forEach(msg =>
@@ -46,15 +66,14 @@ const Dashboard = () => {
                 </button>
               </div>
             ),
-            { duration: 5000, id: `alert-${msg}` } // ✅ Unique ID prevents duplicates
+            { duration: 5000, id: `alert-${msg}` }
           )
         );
       }
       
-      // Motivational toast
       showMotivationalToast(Number(streak), Number(points));
     }
-  }, [latest?.timestamp]); // ✅ Only trigger when timestamp changes
+  }, [latest?.timestamp]);
 
   // 📈 Prepare chart data
   useEffect(() => {
@@ -91,10 +110,44 @@ const Dashboard = () => {
     <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
       <Toaster position="top-right" toastOptions={{ duration: 4000 }} />
       
+      {/* Emergency Alert Modal */}
+      {showEmergency && (
+        <EmergencyAlert 
+          vitals={latest} 
+          onClose={() => setShowEmergency(false)} 
+        />
+      )}
+      
       <div className="max-w-7xl mx-auto">
         <h1 className="text-2xl sm:text-3xl font-bold mb-6 text-gray-700 text-center">
           🏥 Health Dashboard
         </h1>
+
+        {/* Quick Action Buttons */}
+        <div className="flex gap-3 justify-center mb-6 flex-wrap">
+          <button
+            onClick={() => setShowPredictor(!showPredictor)}
+            className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold px-6 py-3 rounded-xl shadow-lg transition flex items-center gap-2"
+          >
+            <span className="text-xl">🔮</span>
+            {showPredictor ? "Hide" : "Show"} AI Predictions
+          </button>
+          
+          <button
+            onClick={() => window.location.href = "/family"}
+            className="bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 text-white font-semibold px-6 py-3 rounded-xl shadow-lg transition flex items-center gap-2"
+          >
+            <span className="text-xl">👨‍👩‍👧‍👦</span>
+            Family Hub
+          </button>
+        </div>
+
+        {/* AI Health Predictor */}
+        {showPredictor && (
+          <div className="mb-8">
+            <AIHealthPredictor />
+          </div>
+        )}
 
         {/* Vital Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
